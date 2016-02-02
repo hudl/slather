@@ -31,6 +31,11 @@ module Slather
       end
       private :jenkins_job_id
 
+      def teamcity_job_id
+        ENV['TC_BUILD_NUMBER']
+      end
+      private :teamcity_job_id
+
       def jenkins_branch_name
         branch_name = ENV['GIT_BRANCH']
         if branch_name.include? 'origin/'
@@ -50,6 +55,19 @@ module Slather
         ENV['BUILDKITE_PULL_REQUEST']
       end
       private :buildkite_pull_request
+
+      def teamcity_git_info
+        {
+          head: {
+            :id => (`git log --format=%H -n 1 HEAD`.chomp || ""),
+            :author_name => (`git log --format=%an -n 1 HEAD`.chomp || ""),
+            :author_email => (`git log --format=%ae -n 1 HEAD`.chomp || ""),
+            :message => (`git log --format=%s -n 1 HEAD`.chomp || "") 
+          },
+          :branch => (`git rev-parse --abbrev-ref HEAD`.chomp || "")
+        }
+      end
+      private :teamcity_git_info
 
       def jenkins_git_info
         {
@@ -161,6 +179,18 @@ module Slather
           else
             raise StandardError, "Environment variable `BUILDKITE_BUILD_NUMBER` not set. Is this running on a buildkite build?"
           end
+        elsif ci_service == :teamcity
+          if teamcity_job_id
+            {
+              :service_job_id => teamcity_job_id,
+              :service_name => "teamcity",
+              :repo_token => coverage_access_token,
+              :source_files => coverage_files.map(&:as_json),
+              :git => teamcity_git_info
+            }.to_json
+          else
+            raise StandardError, "Environment variable `TC_BUILD_NUMBER` not set. Is this running on a teamcity agent?"
+          end
         else
           raise StandardError, "No support for ci named #{ci_service}"
         end
@@ -168,6 +198,20 @@ module Slather
       private :coveralls_coverage_data
 
       def post
+        total_project_lines = 0
+        total_project_lines_tested = 0
+        coverage_files.each do |coverage_file|
+          # ignore lines that don't count towards coverage (comments, whitespace, etc). These are nil in the array.
+
+          lines_tested = coverage_file.num_lines_tested
+          total_lines = coverage_file.num_lines_testable
+
+          total_project_lines_tested += lines_tested
+          total_project_lines += total_lines
+        end
+        total_percentage = '%.2f' % [(total_project_lines_tested / total_project_lines.to_f) * 100.0]
+        puts "Test Coverage: #{total_percentage}%"
+        
         f = File.open('coveralls_json_file', 'w+')
         begin
           f.write(coveralls_coverage_data)
