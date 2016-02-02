@@ -56,6 +56,19 @@ module Slather
       end
       private :buildkite_pull_request
 
+      def teamcity_git_info
+        {
+          head: {
+            id: => ('git log --format=%H -n 1 HEAD'.chome || ""),
+            :author_name => (`git log --format=%an -n 1 HEAD`.chomp || ""),
+            :author_email => (`git log --format=%ae -n 1 HEAD`.chomp || ""),
+            :message => (`git log --format=%s -n 1 HEAD`.chomp || "") 
+          },
+          :branch => (`git rev-parse --abbrev-ref HEAD`.chomp || "")
+        }
+      end
+      private :teamcity_git_info
+
       def jenkins_git_info
         {
           head: {
@@ -172,7 +185,8 @@ module Slather
               :service_job_id => teamcity_job_id,
               :service_name => "teamcity",
               :repo_token => coverage_access_token,
-              :source_files => coverage_files.map(&:as_json)
+              :source_files => coverage_files.map(&:as_json),
+              :git => teamcity_git_info
             }.to_json
           else
             raise StandardError, "Environment variable `TC_BUILD_NUMBER` not set. Is this running on a teamcity agent?"
