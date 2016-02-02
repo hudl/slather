@@ -59,7 +59,7 @@ module Slather
       def teamcity_git_info
         {
           head: {
-            :id => (`git log --format=%H -n 1 HEAD`.chome || ""),
+            :id => (`git log --format=%H -n 1 HEAD`.chomp || ""),
             :author_name => (`git log --format=%an -n 1 HEAD`.chomp || ""),
             :author_email => (`git log --format=%ae -n 1 HEAD`.chomp || ""),
             :message => (`git log --format=%s -n 1 HEAD`.chomp || "") 
