@@ -198,6 +198,20 @@ module Slather
       private :coveralls_coverage_data
 
       def post
+        total_project_lines = 0
+        total_project_lines_tested = 0
+        coverage_files.each do |coverage_file|
+          # ignore lines that don't count towards coverage (comments, whitespace, etc). These are nil in the array.
+
+          lines_tested = coverage_file.num_lines_tested
+          total_lines = coverage_file.num_lines_testable
+
+          total_project_lines_tested += lines_tested
+          total_project_lines += total_lines
+        end
+        total_percentage = '%.2f' % [(total_project_lines_tested / total_project_lines.to_f) * 100.0]
+        puts "Test Coverage: #{total_percentage}%"
+        
         f = File.open('coveralls_json_file', 'w+')
         begin
           f.write(coveralls_coverage_data)
