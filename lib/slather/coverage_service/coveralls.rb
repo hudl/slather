@@ -64,7 +64,7 @@ module Slather
             :author_email => (`git log --format=%ae -n 1 HEAD`.chomp || ""),
             :message => (`git log --format=%s -n 1 HEAD`.chomp || "") 
           },
-          :branch => (`git rev-parse --abbrev-ref HEAD`.chomp || "")
+          :branch => (`git rev-parse --abbrev-ref HEAD`.chomp.delete("remotes/origin/", "") || "")
         }
       end
       private :teamcity_git_info
