@@ -64,10 +64,9 @@ module Slather
             :author_email => (`git log --format=%ae -n 1 HEAD`.chomp || ""),
             :message => (`git log --format=%s -n 1 HEAD`.chomp || "") 
           },
-          :branch => (`git rev-parse --abbrev-ref HEAD`.chomp.delete("remotes/origin/", "") || "")
+          :branch => (`git ls-remote --heads origin | grep $(git rev-parse HEAD) | cut -d / -f 3`.chomp || "")
         }
       end
-      puts `git rev-parse --abbrev-ref HEAD`.chomp.delete("remotes/origin/", "")
       private :teamcity_git_info
 
       def jenkins_git_info
