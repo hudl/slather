@@ -67,6 +67,7 @@ module Slather
           :branch => (`git rev-parse --abbrev-ref HEAD`.chomp.delete("remotes/origin/", "") || "")
         }
       end
+      puts `git rev-parse --abbrev-ref HEAD`.chomp.delete("remotes/origin/", "")
       private :teamcity_git_info
 
       def jenkins_git_info
