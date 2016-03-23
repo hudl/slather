@@ -50,8 +50,8 @@ end
 module Slather
   class Project < Xcodeproj::Project
 
-    attr_accessor :build_directory, :ignore_list, :ci_service, :coverage_service, :coverage_access_token, :source_directory, 
-      :output_directory, :xcodeproj, :show_html, :verbose_mode, :input_format, :scheme, :binary_file
+    attr_accessor :build_directory, :ignore_list, :ci_service, :coverage_service, :coverage_access_token, :source_directory,
+      :output_directory, :xcodeproj, :show_html, :verbose_mode, :input_format, :scheme, :binary_file, :binary_basename
 
     alias_method :setup_for_coverage, :slather_setup_for_coverage
 
@@ -100,13 +100,29 @@ module Slather
     end
     private :profdata_coverage_files
 
+    def remove_extension(path)
+      path.split(".")[0..-2].join(".")
+    end
+
+    def first_product_name
+      first_product = self.products.first
+      # If name is not available it computes it using
+      # the path by dropping the 'extension' of the path.
+      first_product.name || remove_extension(first_product.path)
+    end
+
     def profdata_coverage_dir
       raise StandardError, "The specified build directory (#{self.build_directory}) does not exist" unless File.exists?(self.build_directory)
       dir = nil
       if self.scheme
-        dir = Dir["#{build_directory}/**/CodeCoverage/#{self.scheme}"].first
+        dir = Dir[File.join("#{build_directory}","/**/CodeCoverage/#{self.scheme}")].first
       else
-        dir = Dir["#{build_directory}/**/#{self.products.first.name}"].first
+        dir = Dir[File.join("#{build_directory}","/**/#{first_product_name}")].first
+      end
+
+      if dir == nil
+        # Xcode 7.3 moved the location of Coverage.profdata
+        dir = Dir[File.join("#{build_directory}","/**/CodeCoverage")].first
       end
 
       raise StandardError, "No coverage directory found. Are you sure your project is setup for generating coverage files? Try `slather setup your/project.xcodeproj`" unless dir != nil
@@ -247,17 +263,18 @@ module Slather
 
     def coverage_service=(service)
       service = service && service.to_sym
-      if service == :coveralls
+      case service
+      when :coveralls
         extend(Slather::CoverageService::Coveralls)
-      elsif service == :hardcover
+      when :hardcover
         extend(Slather::CoverageService::Hardcover)
-      elsif service == :terminal
+      when :terminal
         extend(Slather::CoverageService::SimpleOutput)
-      elsif service == :gutter_json
+      when :gutter_json
         extend(Slather::CoverageService::GutterJsonOutput)
-      elsif service == :cobertura_xml
+      when :cobertura_xml
         extend(Slather::CoverageService::CoberturaXmlOutput)
-      elsif service == :html
+      when :html
         extend(Slather::CoverageService::HtmlOutput)
       else
         raise ArgumentError, "`#{coverage_service}` is not a valid coverage service. Try `terminal`, `coveralls`, `gutter_json`, `cobertura_xml` or `html`"
@@ -278,14 +295,18 @@ module Slather
       raise StandardError, "No product binary found in #{profdata_coverage_dir}. Are you sure your project is setup for generating coverage files? Try `slather setup your/project.xcodeproj`" unless xctest_bundle != nil
 
       # Find the matching binary file
+      search_for = self.binary_basename || self.class.yml["binary_basename"] || '*'
       xctest_bundle_file_directory = Pathname.new(xctest_bundle).dirname
-      app_bundle = Dir["#{xctest_bundle_file_directory}/*.app"].first
-      dynamic_lib_bundle = Dir["#{xctest_bundle_file_directory}/*.framework"].first
+      app_bundle = Dir["#{xctest_bundle_file_directory}/#{search_for}.app"].first
+      dynamic_lib_bundle = Dir["#{xctest_bundle_file_directory}/#{search_for}.framework"].first
+      matched_xctest_bundle = Dir["#{xctest_bundle_file_directory}/#{search_for}.xctest"].first
 
       if app_bundle != nil
         find_binary_file_for_app(app_bundle)
       elsif dynamic_lib_bundle != nil
         find_binary_file_for_dynamic_lib(dynamic_lib_bundle)
+      elsif matched_xctest_bundle != nil
+        find_binary_file_for_static_lib(matched_xctest_bundle)
       else
         find_binary_file_for_static_lib(xctest_bundle)
       end

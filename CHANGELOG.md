@@ -1,8 +1,45 @@
 # CHANGELOG
 
 ## master
+* Xcode 7.3 compatibility (updated path returned by `profdata_coverage_dir`)
+  [Kent Sutherland](https://github.com/ksuther)
+  [#125](https://github.com/SlatherOrg/slather/issues/125), [#169](https://github.com/SlatherOrg/slather/pull/169)
 
-## v1.8.2
+* Improve matching of xctest bundles when using `--binary-basename`
+  [Kent Sutherland](https://github.com/ksuther)
+  [#167](https://github.com/SlatherOrg/slather/pull/167)
+
+* Build Statistic Reporting for TeamCity
+  [Michael Myers](https://github.com/michaelmyers)
+  [#150](https://github.com/SlatherOrg/slather/pull/150)
+
+## v2.0.1
+
+* Fixes how `profdata_coverage_dir` is created.
+  [guidomb](https://github.com/guidomb)
+  [#145](https://github.com/SlatherOrg/slather/pull/145)
+
+## v2.0.0
+* Correct html rendering when using profdata format   
+  [cutz](https://github.com/cutz)
+  [#124](https://github.com/SlatherOrg/slather/pull/124)
+
+* Making HTML directory self contained   
+  [Colin Cornaby](https://github.com/colincornaby)
+  [#137](https://github.com/SlatherOrg/slather/pull/137)
+
+* Add `binary_basename` configuration option   
+  [Boris Bügling](https://github.com/neonichu)
+  [#128](https://github.com/SlatherOrg/slather/pull/128)
+
+* Add support to profdata file format   
+  [Simone Civetta](https://github.com/viteinfinite)
+  [Olivier Halligon](https://github.com/AliSoftware)
+  [Matt Delves](https://github.com/mattdelves)
+  [Pierre-Marc Airoldi](https://github.com/petester42)
+  [#92](https://github.com/venmo/slather/pull/92)
+
+## v1.8.3
 * Add buildkite support to coveralls   
   [David Hardiman](https://github.com/dhardiman)
   [#98](https://github.com/venmo/slather/pull/98)

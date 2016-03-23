@@ -45,5 +45,5 @@ html
 *.gcda
 *.gcno
 
-# RubyMine
+# JetBrains IDE
 .idea/

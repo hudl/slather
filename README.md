@@ -1,10 +1,10 @@
 
 
-![Slather Logo](https://raw.githubusercontent.com/venmo/slather/master/docs/logo.jpg)
+![Slather Logo](https://raw.githubusercontent.com/SlatherOrg/slather/master/docs/logo.jpg)
 
 [![Gem Version](https://badge.fury.io/rb/slather.svg)](http://badge.fury.io/rb/slather)
-[![Build Status](https://travis-ci.org/venmo/slather.svg?branch=master)](https://travis-ci.org/venmo/slather)
-[![Coverage Status](https://coveralls.io/repos/venmo/slather/badge.svg?branch=ayanonagon%2Fcoveralls)](https://coveralls.io/r/venmo/slather?branch=ayanonagon%2Fcoveralls)
+[![Build Status](https://travis-ci.org/SlatherOrg/slather.svg?branch=master)](https://travis-ci.org/SlatherOrg/slather)
+[![Coverage Status](https://coveralls.io/repos/SlatherOrg/slather/badge.svg?branch=master)](https://coveralls.io/r/SlatherOrg/slather?branch=master)
 
 Generate test coverage reports for Xcode projects & hook it into CI.
 
@@ -33,6 +33,18 @@ $ bundle
 
 ## Usage
 
+Apple drastically improved the support for code coverage in Xcode 7, including dedicated UI for enabling it. You can now setup your project for test coverage inside the scheme editor, by ticking the *"Gather coverage data"* checkbox:
+
+![](README_Images/test_scheme.png)
+
+To verify you're ready to generate test coverage, run your test suite on your project, and then run:
+
+```sh
+$ slather coverage -s path/to/project.xcodeproj
+```
+
+### Previous versions of Xcode
+
 Set up your project for test coverage:
 
 ```sh
@@ -40,13 +52,6 @@ $ slather setup path/to/project.xcodeproj
 ```
 
 This will enable the `Generate Test Coverage` and `Instrument Program Flow` flags for your project.
-
-
-To verify you're ready to generate test coverage, run your test suite on your project, and then run:
-
-```sh
-$ slather coverage -s path/to/project.xcodeproj
-```
 
 ### Usage with Codecov
 
@@ -169,6 +174,14 @@ $ slather coverage --html path/to/project.xcodeproj
 
 This will make a directory named `html` in your root directory (unless `--output-directory` is specified) and will generate all the reports as static html pages inside the directory. It will print out the report's path by default, but you can also specify `--show` flag to open it in your browser automatically.
 
+### TeamCity Reporting
+
+To report the coverage statistics to TeamCity:
+
+```sh
+$ slather coverage --teamcity -s
+```
+
 ### Coverage for code included via CocoaPods
 
 If you're trying to compute the coverage of code that has been included via
@@ -193,7 +206,7 @@ Slather will look for the test coverage files in `DerivedData` by default. If yo
 
 ## Contributing
 
-We’d love to see your ideas for improving this library! The best way to contribute is by submitting a pull request. We’ll do our best to respond to your patch as soon as possible. You can also submit a [new GitHub issue](https://github.com/venmo/slather/issues/new) if you find bugs or have questions. :octocat:
+We’d love to see your ideas for improving this library! The best way to contribute is by submitting a pull request. We’ll do our best to respond to your patch as soon as possible. You can also submit a [new GitHub issue](https://github.com/SlatherOrg/slather/issues/new) if you find bugs or have questions. :octocat:
 
 Please make sure to follow our general coding style and add test coverage for new features!
 
