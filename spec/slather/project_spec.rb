@@ -8,23 +8,11 @@ describe Slather::Project do
     Slather::Project.open(FIXTURES_PROJECT_PATH)
   end
 
-  describe "#derived_data_path" do
-    it "should return the system's derived data directory" do
-      expect(fixtures_project.send(:derived_data_path)).to eq(File.expand_path('~') + "/Library/Developer/Xcode/DerivedData/")
-    end
-  end
-
   describe "#build_directory" do
     it "should return the build_directory property, if it has been explicitly set" do
       build_directory_mock = double(String)
       fixtures_project.build_directory = build_directory_mock
       expect(fixtures_project.build_directory).to eq(build_directory_mock)
-    end
-
-    it "should return the derived_data_path if no build_directory has been set" do
-      derived_data_path = File.expand_path('~') + "/Library/Developer/Xcode/DerivedData/"
-      fixtures_project.send(:configure_build_directory)
-      expect(fixtures_project.build_directory).to eq(derived_data_path)
     end
   end
 
@@ -141,31 +129,31 @@ describe Slather::Project do
       allow(Dir).to receive(:[]).and_call_original
       allow(fixtures_project).to receive(:build_directory).and_return(build_directory)
       allow(fixtures_project).to receive(:input_format).and_return("profdata")
-      allow(fixtures_project).to receive(:scheme).and_return("FixtureScheme")
+      allow(fixtures_project).to receive(:scheme).and_return("fixtures")
       allow(Dir).to receive(:[]).with("#{build_directory}/**/CodeCoverage/FixtureScheme").and_return(["#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme"])
       allow(Dir).to receive(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/**/*.xctest").and_return(["#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/FixtureAppTests.xctest"])
     end
 
-    it "should return the binary file location for an app bundle provided a scheme" do
-      allow(Dir).to receive(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/*.app").and_return(["/FixtureScheme/FixtureApp.app"])
-      allow(Dir).to receive(:[]).with("/FixtureScheme/FixtureApp.app/**/FixtureApp").and_return(["/FixtureScheme/FixtureApp.app/FixtureApp"])
+    it "should find the product path provided a scheme" do
+      allow(fixtures_project).to receive(:scheme).and_return("fixtures")
       fixtures_project.send(:configure_binary_file)
       binary_file_location = fixtures_project.send(:binary_file)
-      expect(binary_file_location).to eq("/FixtureScheme/FixtureApp.app/FixtureApp")
+      expect(binary_file_location).to end_with("Debug/fixturesTests.xctest/Contents/MacOS/fixturesTests")
     end
 
-    it "should return the binary file location for a framework bundle provided a scheme" do
-      allow(Dir).to receive(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/*.framework").and_return(["/FixtureScheme/FixtureFramework.framework"])
+    it "should find the product path provided a workspace and scheme" do
+      allow(fixtures_project).to receive(:workspace).and_return("fixtures.xcworkspace")
+      allow(fixtures_project).to receive(:scheme).and_return("fixtures")
       fixtures_project.send(:configure_binary_file)
       binary_file_location = fixtures_project.send(:binary_file)
-      expect(binary_file_location).to eq("/FixtureScheme/FixtureFramework.framework/FixtureFramework")
+      expect(binary_file_location).to end_with("Debug/fixturesTests.xctest/Contents/MacOS/fixturesTests")
     end
 
-    it "should return the binary file location for a test bundle provided a scheme" do
-      allow(Dir).to receive(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/FixtureAppTests.xctest/**/FixtureAppTests").and_return(["/FixtureScheme/FixtureAppTests.xctest/Contents/MacOS/FixtureAppTests"])
+    it "should find the product path for a scheme with no buildable products" do
+      allow(fixtures_project).to receive(:scheme).and_return("fixturesTests")
       fixtures_project.send(:configure_binary_file)
       binary_file_location = fixtures_project.send(:binary_file)
-      expect(binary_file_location).to eq("/FixtureScheme/FixtureAppTests.xctest/Contents/MacOS/FixtureAppTests")
+      expect(binary_file_location).to end_with("Debug/fixturesTests.xctest/Contents/MacOS/fixturesTests")
     end
 
     let(:fixture_yaml) do
@@ -184,26 +172,18 @@ describe Slather::Project do
 
     let(:other_fixture_yaml) do
       yaml_text = <<-EOF
-        binary_basename: "FixtureFramework"
+        binary_basename: "fixtures"
       EOF
       yaml = YAML.load(yaml_text)
     end
 
     it "should configure the binary_basename from yml" do
       allow(Slather::Project).to receive(:yml).and_return(other_fixture_yaml)
-      allow(Dir).to receive(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/FixtureFramework.framework").and_return(["/FixtureScheme/FixtureFramework.framework"])
+      allow(Dir).to receive(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/Products/Debug/fixtureTests.xctest").and_return(["fixtureTests.xctest"])
       fixtures_project.send(:configure_binary_file)
       binary_file_location = fixtures_project.send(:binary_file)
-      expect(binary_file_location).to eq("/FixtureScheme/FixtureFramework.framework/FixtureFramework")
+      expect(binary_file_location).to end_with("/fixturesTests.xctest/Contents/MacOS/fixturesTests")
     end
-
- #  it "should find the binary file without any yml setting" do
- #    fixtures_project.configure_binary_file
- #    Dir.stub(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/*.app").and_return(["/FixtureScheme/FixtureApp.app"])
- #    Dir.stub(:[]).with("/FixtureScheme/FixtureApp.app/**/FixtureApp").and_return(["/FixtureScheme/FixtureApp.app/FixtureApp"])
- #    binary_file_location = fixtures_project.send(:binary_file)
- #    expect(binary_file_location).to eq("/FixtureScheme/FixtureApp.app/FixtureApp")
- #  end
   end
 
   describe "#dedupe" do
@@ -238,6 +218,7 @@ describe Slather::Project do
       expect(unstubbed_project).to receive(:configure_coverage_service)
       expect(unstubbed_project).to receive(:configure_input_format)
       expect(unstubbed_project).to receive(:configure_scheme)
+      expect(unstubbed_project).to receive(:configure_workspace)
       unstubbed_project.configure
     end
   end
@@ -317,6 +298,21 @@ describe Slather::Project do
       fixtures_project.output_directory = "/already/set"
       fixtures_project.configure_output_directory
       expect(fixtures_project.output_directory).to eq("/already/set")
+    end
+  end
+
+  describe "#configure_workspace" do
+    it "should set the workspace if it has been provided in the yml and has not already been set" do
+      allow(Slather::Project).to receive(:yml).and_return({"workspace" => "fixtures.xcworkspace"})
+      fixtures_project.configure_workspace
+      expect(fixtures_project.workspace).to eq("fixtures.xcworkspace")
+    end
+
+    it "should not set the workspace if it has already been set" do
+      allow(Slather::Project).to receive(:yml).and_return({"workspace" => "fixtures.xcworkspace"})
+      fixtures_project.workspace = "MyWorkspace.xcworkspace"
+      fixtures_project.configure_workspace
+      expect(fixtures_project.workspace).to eq("MyWorkspace.xcworkspace")
     end
   end
 
@@ -430,7 +426,10 @@ describe Slather::Project do
         xcscheme = Xcodeproj::XCScheme.new(xcscheme_path)
         expect(xcscheme.test_action.xml_element.attributes['codeCoverageEnabled']).to eq("YES")
       end
+    end
 
+    it "should fail for unknown coverage type" do
+      expect { fixtures_project_setup.slather_setup_for_coverage "this should fail" }.to raise_error(StandardError)
     end
   end
 
@@ -449,8 +448,8 @@ describe Slather::Project do
 
       project_root = Pathname("./").realpath
 
-      ["\nProcessing coverage file: #{project_root}/spec/DerivedData/libfixtures/Build/Intermediates/CodeCoverage/fixtures/Coverage.profdata",
-       "Against binary file: #{project_root}/spec/DerivedData/libfixtures/Build/Intermediates/CodeCoverage/fixtures/Products/Debug/fixturesTests.xctest/Contents/MacOS/fixturesTests\n\n"
+      ["\nProcessing coverage file: #{project_root}/spec/DerivedData/libfixtures/Build/Intermediates/CodeCoverage/Coverage.profdata",
+       "Against binary file: #{project_root}/spec/DerivedData/libfixtures/Build/Intermediates/CodeCoverage/Products/Debug/fixturesTests.xctest/Contents/MacOS/fixturesTests\n\n"
       ].each do |line|
         expect(fixtures_project).to receive(:puts).with(line)
       end
