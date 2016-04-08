@@ -218,10 +218,10 @@ module Slather
           f.close
           `curl -s --form json_file=@#{f.path} #{coveralls_api_jobs_path}`
         rescue StandardError => e
-          FileUtils.rm(f)
+          #FileUtils.rm(f)
           raise e
         end
-        FileUtils.rm(f)
+        #FileUtils.rm(f)
       end
 
       def coveralls_api_jobs_path
