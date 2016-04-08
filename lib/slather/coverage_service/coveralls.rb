@@ -216,6 +216,8 @@ module Slather
         begin
           f.write(coveralls_coverage_data)
           f.close
+          puts coveralls_coverage_data
+          puts "curl -s --form json_file=@#{f.path} #{coveralls_api_jobs_path}"
           `curl -s --form json_file=@#{f.path} #{coveralls_api_jobs_path}`
         rescue StandardError => e
           #FileUtils.rm(f)
