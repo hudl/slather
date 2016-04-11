@@ -64,7 +64,7 @@ module Slather
             :author_email => (`git log --format=%ae -n 1 HEAD`.chomp || ""),
             :message => (`git log --format=%s -n 1 HEAD`.chomp || "") 
           },
-          :branch => (`git ls-remote --heads origin | grep $(git rev-parse HEAD) | cut -d / -f 3`.chomp || "")
+          :branch => (`git ls-remote --heads origin | grep $(git rev-parse HEAD) | cut -d / -f 3-`.chomp || "")
         }
       end
       private :teamcity_git_info
