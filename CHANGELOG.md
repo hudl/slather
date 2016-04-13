@@ -2,7 +2,82 @@
 
 ## master
 
-## v1.8.2
+* Improve getting schemes. Looks for user scheme in case no shared scheme is found.  
+  [Matyas Hlavacek](https://github.com/matyashlavacek)
+  [#182](https://github.com/SlatherOrg/slather/issues/182)
+
+## v2.1.0
+
+* Support for Xcode workspaces. Define `workspace` configuration in `.slather.yml` or use the `--workspace` argument if you build in a workspace.
+* Improved slather error messages  
+  [Kent Sutherland](https://github.com/ksuther)
+  [#178](https://github.com/SlatherOrg/slather/issues/178)
+
+* Re-add Teamcity support  
+  [Boris Bügling](https://github.com/neonichu)
+  [#180](https://github.com/SlatherOrg/slather/pull/180)
+
+* Show lines that are hit thousands or millions of time in llvm-cov  
+  [Kent Sutherland](https://github.com/ksuther)
+  [#179](https://github.com/SlatherOrg/slather/pull/179)
+
+* Fix for setting scheme/workspace from configuration file.  
+  [Boris Bügling](https://github.com/neonichu)
+  [#183](https://github.com/SlatherOrg/slather/pull/183)
+
+## v2.0.2
+
+* Escape the link to file names properly  
+  [Thomas Mellenthin](https://github.com/melle)
+  [#158](https://github.com/SlatherOrg/slather/pull/158)
+
+* Product info is now read from schemes. Specify a scheme in `.slather.yml` or with the `--scheme` argument to ensure consistent results. Automatically detect the derived data directory from `xcodebuild`  
+  [Kent Sutherland](https://github.com/ksuther)
+  [#174](https://github.com/SlatherOrg/slather/pull/174)
+
+* Xcode 7.3 compatibility (updated path returned by `profdata_coverage_dir`)  
+  [Kent Sutherland](https://github.com/ksuther)
+  [#125](https://github.com/SlatherOrg/slather/issues/125), [#169](https://github.com/SlatherOrg/slather/pull/169)
+
+* Improve matching of xctest bundles when using `--binary-basename`  
+  [Kent Sutherland](https://github.com/ksuther)
+  [#167](https://github.com/SlatherOrg/slather/pull/167)
+
+* Build Statistic Reporting for TeamCity  
+  [Michael Myers](https://github.com/michaelmyers)
+  [#150](https://github.com/SlatherOrg/slather/pull/150)
+
+* Use named classes for subcommands in bin/slather  
+  [bootstraponline](https://github.com/bootstraponline)
+  [#170](https://github.com/SlatherOrg/slather/pull/170)
+
+## v2.0.1
+
+* Fixes how `profdata_coverage_dir` is created.  
+  [guidomb](https://github.com/guidomb)
+  [#145](https://github.com/SlatherOrg/slather/pull/145)
+
+## v2.0.0
+* Correct html rendering when using profdata format   
+  [cutz](https://github.com/cutz)
+  [#124](https://github.com/SlatherOrg/slather/pull/124)
+
+* Making HTML directory self contained   
+  [Colin Cornaby](https://github.com/colincornaby)
+  [#137](https://github.com/SlatherOrg/slather/pull/137)
+
+* Add `binary_basename` configuration option   
+  [Boris Bügling](https://github.com/neonichu)
+  [#128](https://github.com/SlatherOrg/slather/pull/128)
+
+* Add support to profdata file format   
+  [Simone Civetta](https://github.com/viteinfinite)
+  [Olivier Halligon](https://github.com/AliSoftware)
+  [Matt Delves](https://github.com/mattdelves)
+  [Pierre-Marc Airoldi](https://github.com/petester42)
+  [#92](https://github.com/venmo/slather/pull/92)
+
+## v1.8.3
 * Add buildkite support to coveralls   
   [David Hardiman](https://github.com/dhardiman)
   [#98](https://github.com/venmo/slather/pull/98)

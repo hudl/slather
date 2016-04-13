@@ -8,23 +8,11 @@ describe Slather::Project do
     Slather::Project.open(FIXTURES_PROJECT_PATH)
   end
 
-  describe "#derived_data_path" do
-    it "should return the system's derived data directory" do
-      expect(fixtures_project.send(:derived_data_path)).to eq(File.expand_path('~') + "/Library/Developer/Xcode/DerivedData/")
-    end
-  end
-
   describe "#build_directory" do
     it "should return the build_directory property, if it has been explicitly set" do
       build_directory_mock = double(String)
       fixtures_project.build_directory = build_directory_mock
       expect(fixtures_project.build_directory).to eq(build_directory_mock)
-    end
-
-    it "should return the derived_data_path if no build_directory has been set" do
-      derived_data_path = File.expand_path('~') + "/Library/Developer/Xcode/DerivedData/"
-      fixtures_project.send(:configure_build_directory)
-      expect(fixtures_project.build_directory).to eq(derived_data_path)
     end
   end
 
@@ -52,19 +40,19 @@ describe Slather::Project do
     end
 
     before(:each) do
-      Dir.stub(:[]).and_call_original
-      Dir.stub(:[]).with("#{fixtures_project.build_directory}/**/*.gcno").and_return(["/some/path/fixtures.gcno",
+      allow(Dir).to receive(:[]).and_call_original
+      allow(Dir).to receive(:[]).with("#{fixtures_project.build_directory}/**/*.gcno").and_return(["/some/path/fixtures.gcno",
                                                                                   "/some/path/peekaview.gcno",
                                                                                   "/some/path/fixturesTests.gcno",
                                                                                   "/some/path/peekaviewTests.gcno",
                                                                                   "/some/path/NotInProject.gcno",
                                                                                   "/some/path/NSRange.gcno"])
-      fixtures_project.stub(:coverage_file_class).and_return(SpecCoverageFile)
+      allow(fixtures_project).to receive(:coverage_file_class).and_return(SpecCoverageFile)
     end
 
     it "should return coverage file objects of type coverage_file_class for unignored project files" do
       fixtures_project.ignore_list = ["*fixturesTests*"]
-      fixtures_project.stub(:dedupe) { |coverage_files| coverage_files }
+      allow(fixtures_project).to receive(:dedupe) { |coverage_files| coverage_files }
       coverage_files = fixtures_project.send(:coverage_files)
       coverage_files.each { |cf| expect(cf.kind_of?(SpecCoverageFile)).to be_truthy }
       expect(coverage_files.map { |cf| cf.source_file_pathname.basename.to_s }).to eq(["fixtures.m", "peekaview.m"])
@@ -81,9 +69,9 @@ describe Slather::Project do
     end
 
     before(:each) do
-      Dir.stub(:[]).and_call_original
-      Dir.stub(:[]).with("#{fixtures_project.build_directory}/**/Coverage.profdata").and_return(["/some/path/Coverage.profdata"])
-      fixtures_project.stub(:profdata_llvm_cov_output).and_return("#{FIXTURES_SWIFT_FILE_PATH}:
+      allow(Dir).to receive(:[]).and_call_original
+      allow(Dir).to receive(:[]).with("#{fixtures_project.build_directory}/**/Coverage.profdata").and_return(["/some/path/Coverage.profdata"])
+      allow(fixtures_project).to receive(:profdata_llvm_cov_output).and_return("#{FIXTURES_SWIFT_FILE_PATH}:
        |    0|
        |    1|import UIKit
        |    2|
@@ -99,8 +87,8 @@ describe Slather::Project do
       0|   12|    func applicationWillResignActive(application: UIApplication) {
       0|   13|    }
       0|   14|}")
-      fixtures_project.stub(:coverage_file_class).and_return(SpecXcode7CoverageFile)
-      fixtures_project.stub(:ignore_list).and_return([])
+      allow(fixtures_project).to receive(:coverage_file_class).and_return(SpecXcode7CoverageFile)
+      allow(fixtures_project).to receive(:ignore_list).and_return([])
     end
 
     it "should return Coverage.profdata file objects" do
@@ -110,7 +98,7 @@ describe Slather::Project do
     end
 
     it "should ignore files from the ignore list" do
-      fixtures_project.stub(:ignore_list).and_return(["**/Fixtures.swift"])
+      allow(fixtures_project).to receive(:ignore_list).and_return(["**/Fixtures.swift"])
       profdata_coverage_files = fixtures_project.send(:profdata_coverage_files)
       expect(profdata_coverage_files.count).to eq(0)
     end
@@ -118,10 +106,10 @@ describe Slather::Project do
 
   describe "#invalid_characters" do
     it "should correctly encode invalid characters" do
-      fixtures_project.stub(:input_format).and_return("profdata")
-      fixtures_project.stub(:ignore_list).and_return([])
-      Dir.stub(:[]).with("#{fixtures_project.build_directory}/**/Coverage.profdata").and_return(["/some/path/Coverage.profdata"])
-      fixtures_project.stub(:unsafe_profdata_llvm_cov_output).and_return("#{FIXTURES_SWIFT_FILE_PATH}:
+      allow(fixtures_project).to receive(:input_format).and_return("profdata")
+      allow(fixtures_project).to receive(:ignore_list).and_return([])
+      allow(Dir).to receive(:[]).with("#{fixtures_project.build_directory}/**/Coverage.profdata").and_return(["/some/path/Coverage.profdata"])
+      allow(fixtures_project).to receive(:unsafe_profdata_llvm_cov_output).and_return("#{FIXTURES_SWIFT_FILE_PATH}:
       1|    8|    func application(application: \255, didFinishLaunchingWithOptions launchOptions: [NSObject: AnyObject]?) -> Bool {
       1|    9|        return true
       0|   14|}")
@@ -138,34 +126,34 @@ describe Slather::Project do
     end
 
     before(:each) do
-      Dir.stub(:[]).and_call_original
-      fixtures_project.stub(:build_directory).and_return(build_directory)
-      fixtures_project.stub(:input_format).and_return("profdata")
-      fixtures_project.stub(:scheme).and_return("FixtureScheme")
-      Dir.stub(:[]).with("#{build_directory}/**/CodeCoverage/FixtureScheme").and_return(["#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme"])
-      Dir.stub(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/**/*.xctest").and_return(["#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/FixtureAppTests.xctest"])
+      allow(Dir).to receive(:[]).and_call_original
+      allow(fixtures_project).to receive(:build_directory).and_return(build_directory)
+      allow(fixtures_project).to receive(:input_format).and_return("profdata")
+      allow(fixtures_project).to receive(:scheme).and_return("fixtures")
+      allow(Dir).to receive(:[]).with("#{build_directory}/**/CodeCoverage/FixtureScheme").and_return(["#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme"])
+      allow(Dir).to receive(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/**/*.xctest").and_return(["#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/FixtureAppTests.xctest"])
     end
 
-    it "should return the binary file location for an app bundle provided a scheme" do
-      Dir.stub(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/*.app").and_return(["/FixtureScheme/FixtureApp.app"])
-      Dir.stub(:[]).with("/FixtureScheme/FixtureApp.app/**/FixtureApp").and_return(["/FixtureScheme/FixtureApp.app/FixtureApp"])
+    it "should find the product path provided a scheme" do
+      allow(fixtures_project).to receive(:scheme).and_return("fixtures")
       fixtures_project.send(:configure_binary_file)
       binary_file_location = fixtures_project.send(:binary_file)
-      expect(binary_file_location).to eq("/FixtureScheme/FixtureApp.app/FixtureApp")
+      expect(binary_file_location).to end_with("Debug/fixturesTests.xctest/Contents/MacOS/fixturesTests")
     end
 
-    it "should return the binary file location for a framework bundle provided a scheme" do
-      Dir.stub(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/*.framework").and_return(["/FixtureScheme/FixtureFramework.framework"])
+    it "should find the product path provided a workspace and scheme" do
+      allow(fixtures_project).to receive(:workspace).and_return("fixtures.xcworkspace")
+      allow(fixtures_project).to receive(:scheme).and_return("fixtures")
       fixtures_project.send(:configure_binary_file)
       binary_file_location = fixtures_project.send(:binary_file)
-      expect(binary_file_location).to eq("/FixtureScheme/FixtureFramework.framework/FixtureFramework")
+      expect(binary_file_location).to end_with("Debug/fixturesTests.xctest/Contents/MacOS/fixturesTests")
     end
 
-    it "should return the binary file location for a test bundle provided a scheme" do
-      Dir.stub(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/FixtureAppTests.xctest/**/FixtureAppTests").and_return(["/FixtureScheme/FixtureAppTests.xctest/Contents/MacOS/FixtureAppTests"])
+    it "should find the product path for a scheme with no buildable products" do
+      allow(fixtures_project).to receive(:scheme).and_return("fixturesTests")
       fixtures_project.send(:configure_binary_file)
       binary_file_location = fixtures_project.send(:binary_file)
-      expect(binary_file_location).to eq("/FixtureScheme/FixtureAppTests.xctest/Contents/MacOS/FixtureAppTests")
+      expect(binary_file_location).to end_with("Debug/fixturesTests.xctest/Contents/MacOS/fixturesTests")
     end
 
     let(:fixture_yaml) do
@@ -176,34 +164,41 @@ describe Slather::Project do
     end
 
     it "should configure the binary_file from yml" do
-      Slather::Project.stub(:yml).and_return(fixture_yaml)
+      allow(Slather::Project).to receive(:yml).and_return(fixture_yaml)
       fixtures_project.send(:configure_binary_file)
       binary_file_location = fixtures_project.send(:binary_file)
       expect(binary_file_location).to eq("/FixtureScheme/From/Yaml/Contents/MacOS/FixturesFromYaml")
     end
 
- #  it "should find the binary file without any yml setting" do
- #    fixtures_project.configure_binary_file
- #    Dir.stub(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/*.app").and_return(["/FixtureScheme/FixtureApp.app"])
- #    Dir.stub(:[]).with("/FixtureScheme/FixtureApp.app/**/FixtureApp").and_return(["/FixtureScheme/FixtureApp.app/FixtureApp"])
- #    binary_file_location = fixtures_project.send(:binary_file)
- #    expect(binary_file_location).to eq("/FixtureScheme/FixtureApp.app/FixtureApp")
- #  end
+    let(:other_fixture_yaml) do
+      yaml_text = <<-EOF
+        binary_basename: "fixtures"
+      EOF
+      yaml = YAML.load(yaml_text)
+    end
+
+    it "should configure the binary_basename from yml" do
+      allow(Slather::Project).to receive(:yml).and_return(other_fixture_yaml)
+      allow(Dir).to receive(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/Products/Debug/fixtureTests.xctest").and_return(["fixtureTests.xctest"])
+      fixtures_project.send(:configure_binary_file)
+      binary_file_location = fixtures_project.send(:binary_file)
+      expect(binary_file_location).to end_with("/fixturesTests.xctest/Contents/MacOS/fixturesTests")
+    end
   end
 
   describe "#dedupe" do
     it "should return a deduplicated list of coverage files, favoring the file with higher coverage" do
       coverage_file_1 = double(Slather::CoverageFile)
-      coverage_file_1.stub(:source_file_pathname).and_return("some/path/class1.m")
-      coverage_file_1.stub(:percentage_lines_tested).and_return(100)
+      allow(coverage_file_1).to receive(:source_file_pathname).and_return("some/path/class1.m")
+      allow(coverage_file_1).to receive(:percentage_lines_tested).and_return(100)
 
       coverage_file_2 = double(Slather::CoverageFile)
-      coverage_file_2.stub(:source_file_pathname).and_return("some/path/class2.m")
-      coverage_file_2.stub(:percentage_lines_tested).and_return(100)
+      allow(coverage_file_2).to receive(:source_file_pathname).and_return("some/path/class2.m")
+      allow(coverage_file_2).to receive(:percentage_lines_tested).and_return(100)
 
       coverage_file_2b = double(Slather::CoverageFile)
-      coverage_file_2b.stub(:source_file_pathname).and_return("some/path/class2.m")
-      coverage_file_2b.stub(:percentage_lines_tested).and_return(0)
+      allow(coverage_file_2b).to receive(:source_file_pathname).and_return("some/path/class2.m")
+      allow(coverage_file_2b).to receive(:percentage_lines_tested).and_return(0)
 
       coverage_files = [coverage_file_1, coverage_file_2, coverage_file_2b]
       deduped_coverage_files = fixtures_project.send(:dedupe, coverage_files)
@@ -223,32 +218,33 @@ describe Slather::Project do
       expect(unstubbed_project).to receive(:configure_coverage_service)
       expect(unstubbed_project).to receive(:configure_input_format)
       expect(unstubbed_project).to receive(:configure_scheme)
+      expect(unstubbed_project).to receive(:configure_workspace)
       unstubbed_project.configure
     end
   end
 
   describe "#configure_ignore_list" do
     it "should set the ignore_list if it has been provided in the yml and has not already been set" do
-      Slather::Project.stub(:yml).and_return({"ignore" => ["test", "ing"] })
+      allow(Slather::Project).to receive(:yml).and_return({"ignore" => ["test", "ing"] })
       fixtures_project.configure_ignore_list
       expect(fixtures_project.ignore_list).to eq(["test", "ing"])
     end
 
     it "should force the ignore_list into an array" do
-      Slather::Project.stub(:yml).and_return({"ignore" => "test" })
+      allow(Slather::Project).to receive(:yml).and_return({"ignore" => "test" })
       fixtures_project.configure_ignore_list
       expect(fixtures_project.ignore_list).to eq(["test"])
     end
 
     it "should not set the ignore_list if it has already been set" do
-      Slather::Project.stub(:yml).and_return({"ignore" => ["test", "ing"] })
+      allow(Slather::Project).to receive(:yml).and_return({"ignore" => ["test", "ing"] })
       fixtures_project.ignore_list = ["already", "set"]
       fixtures_project.configure_ignore_list
       expect(fixtures_project.ignore_list).to eq(["already", "set"])
     end
 
     it "should default the ignore_list to an empty array if nothing is provided in the yml" do
-      Slather::Project.stub(:yml).and_return({})
+      allow(Slather::Project).to receive(:yml).and_return({})
       fixtures_project.configure_ignore_list
       expect(fixtures_project.ignore_list).to eq([])
     end
@@ -256,20 +252,20 @@ describe Slather::Project do
 
   describe "#configure_build_directory" do
     it "should set the build_directory if it has been provided in the yml and has not already been set" do
-      Slather::Project.stub(:yml).and_return({"build_directory" => "/some/path"})
+      allow(Slather::Project).to receive(:yml).and_return({"build_directory" => "/some/path"})
       fixtures_project.configure_build_directory
       expect(fixtures_project.build_directory).to eq("/some/path")
     end
 
     it "should not set the build_directory if it has already been set" do
-      Slather::Project.stub(:yml).and_return({"build_directory" => "/some/path"})
+      allow(Slather::Project).to receive(:yml).and_return({"build_directory" => "/some/path"})
       fixtures_project.build_directory = "/already/set"
       fixtures_project.configure_build_directory
       expect(fixtures_project.build_directory).to eq("/already/set")
     end
 
     it "should default the build_directory to derived data if nothing is provided in the yml" do
-      Slather::Project.stub(:yml).and_return({})
+      allow(Slather::Project).to receive(:yml).and_return({})
       fixtures_project.configure_build_directory
       expect(fixtures_project.build_directory).to eq(fixtures_project.send(:derived_data_path))
     end
@@ -277,13 +273,13 @@ describe Slather::Project do
 
   describe "#configure_source_directory" do
     it "should set the source_directory if it has been provided in the yml and has not already been set" do
-      Slather::Project.stub(:yml).and_return({"source_directory" => "/some/path"})
+      allow(Slather::Project).to receive(:yml).and_return({"source_directory" => "/some/path"})
       fixtures_project.configure_source_directory
       expect(fixtures_project.source_directory).to eq("/some/path")
     end
 
     it "should not set the source_directory if it has already been set" do
-      Slather::Project.stub(:yml).and_return({"source_directory" => "/some/path"})
+      allow(Slather::Project).to receive(:yml).and_return({"source_directory" => "/some/path"})
       fixtures_project.source_directory = "/already/set"
       fixtures_project.configure_source_directory
       expect(fixtures_project.source_directory).to eq("/already/set")
@@ -292,35 +288,50 @@ describe Slather::Project do
 
   describe "#configure_output_directory" do
     it "should set the output_directory if it has been provided in the yml and has not already been set" do
-      Slather::Project.stub(:yml).and_return({"output_directory" => "/some/path"})
+      allow(Slather::Project).to receive(:yml).and_return({"output_directory" => "/some/path"})
       fixtures_project.configure_output_directory
       expect(fixtures_project.output_directory).to eq("/some/path")
     end
 
     it "should not set the output_directory if it has already been set" do
-      Slather::Project.stub(:yml).and_return({"output_directory" => "/some/path"})
+      allow(Slather::Project).to receive(:yml).and_return({"output_directory" => "/some/path"})
       fixtures_project.output_directory = "/already/set"
       fixtures_project.configure_output_directory
       expect(fixtures_project.output_directory).to eq("/already/set")
     end
   end
 
+  describe "#configure_workspace" do
+    it "should set the workspace if it has been provided in the yml and has not already been set" do
+      allow(Slather::Project).to receive(:yml).and_return({"workspace" => "fixtures.xcworkspace"})
+      fixtures_project.configure_workspace
+      expect(fixtures_project.workspace).to eq("fixtures.xcworkspace")
+    end
+
+    it "should not set the workspace if it has already been set" do
+      allow(Slather::Project).to receive(:yml).and_return({"workspace" => "fixtures.xcworkspace"})
+      fixtures_project.workspace = "MyWorkspace.xcworkspace"
+      fixtures_project.configure_workspace
+      expect(fixtures_project.workspace).to eq("MyWorkspace.xcworkspace")
+    end
+  end
+
   describe "#configure_ci_service" do
     it "should set the ci_service if it has been provided in the yml and has not already been set" do
-      Slather::Project.stub(:yml).and_return({"ci_service" => "some_service"})
+      allow(Slather::Project).to receive(:yml).and_return({"ci_service" => "some_service"})
       fixtures_project.configure_ci_service
       expect(fixtures_project.ci_service).to eq(:some_service)
     end
 
     it "should not set the ci_service if it has already been set" do
-      Slather::Project.stub(:yml).and_return({"ci_service" => "some service"})
+      allow(Slather::Project).to receive(:yml).and_return({"ci_service" => "some service"})
       fixtures_project.ci_service = "already_set"
       fixtures_project.configure_ci_service
       expect(fixtures_project.ci_service).to eq(:already_set)
     end
 
     it "should default the ci_service to :travis_ci if nothing is provided in the yml" do
-      Slather::Project.stub(:yml).and_return({})
+      allow(Slather::Project).to receive(:yml).and_return({})
       fixtures_project.configure_ci_service
       expect(fixtures_project.ci_service).to eq(:travis_ci)
     end
@@ -335,20 +346,20 @@ describe Slather::Project do
 
   describe "#configure_coverage_service" do
     it "should set the coverage_service if it has been provided by the yml" do
-      Slather::Project.stub(:yml).and_return({"coverage_service" => "some_service"})
+      allow(Slather::Project).to receive(:yml).and_return({"coverage_service" => "some_service"})
       expect(fixtures_project).to receive(:coverage_service=).with("some_service")
       fixtures_project.configure_coverage_service
     end
 
     it "should default the coverage_service to :terminal if nothing is provided in the yml" do
-      Slather::Project.stub(:yml).and_return({})
+      allow(Slather::Project).to receive(:yml).and_return({})
       expect(fixtures_project).to receive(:coverage_service=).with(:terminal)
       fixtures_project.configure_coverage_service
     end
 
     it "should not set the coverage_service if it has already been set" do
-      Slather::Project.stub(:yml).and_return({"coverage_service" => "some_service" })
-      fixtures_project.stub(:coverage_service).and_return("already set")
+      allow(Slather::Project).to receive(:yml).and_return({"coverage_service" => "some_service" })
+      allow(fixtures_project).to receive(:coverage_service).and_return("already set")
       expect(fixtures_project).to_not receive(:coverage_service=)
       fixtures_project.configure_coverage_service
     end
@@ -356,17 +367,17 @@ describe Slather::Project do
 
   describe "#configure_coverage_access_token" do
     it "should set the coverage_access_token if it has been provided by the yml" do
-      Slather::Project.stub(:yml).and_return({"coverage_access_token" => "abc123"})
+      allow(Slather::Project).to receive(:yml).and_return({"coverage_access_token" => "abc123"})
       expect(fixtures_project).to receive(:coverage_access_token=).with("abc123")
       fixtures_project.configure_coverage_access_token
     end
-    
+
     it "should set the coverage_access_token if it is in the ENV" do
       stub_const('ENV', ENV.to_hash.merge('COVERAGE_ACCESS_TOKEN' => 'asdf456'))
       expect(fixtures_project).to receive(:coverage_access_token=).with("asdf456")
       fixtures_project.configure_coverage_access_token
     end
-    
+
   end
 
   describe "#coverage_service=" do
@@ -391,7 +402,7 @@ describe Slather::Project do
 
     let(:fixtures_project_setup) do
       FileUtils.cp_r "#{FIXTURES_PROJECT_PATH}/", "#{FIXTURES_PROJECT_SETUP_PATH}/"
-      Slather::Project.any_instance.stub(:configure)
+      allow_any_instance_of(Slather::Project).to receive(:configure)
       Slather::Project.open(FIXTURES_PROJECT_SETUP_PATH)
     end
 
@@ -415,7 +426,10 @@ describe Slather::Project do
         xcscheme = Xcodeproj::XCScheme.new(xcscheme_path)
         expect(xcscheme.test_action.xml_element.attributes['codeCoverageEnabled']).to eq("YES")
       end
+    end
 
+    it "should fail for unknown coverage type" do
+      expect { fixtures_project_setup.slather_setup_for_coverage "this should fail" }.to raise_error(StandardError)
     end
   end
 
@@ -434,8 +448,8 @@ describe Slather::Project do
 
       project_root = Pathname("./").realpath
 
-      ["\nProcessing coverage file: #{project_root}/spec/DerivedData/Build/Intermediates/CodeCoverage/fixtures/Coverage.profdata",
-       "Against binary file: #{project_root}/spec/DerivedData/Build/Intermediates/CodeCoverage/fixtures/Products/Debug/fixturesTests.xctest/Contents/MacOS/fixturesTests\n\n"
+      ["\nProcessing coverage file: #{project_root}/spec/DerivedData/libfixtures/Build/Intermediates/CodeCoverage/Coverage.profdata",
+       "Against binary file: #{project_root}/spec/DerivedData/libfixtures/Build/Intermediates/CodeCoverage/Products/Debug/fixturesTests.xctest/Contents/MacOS/fixturesTests\n\n"
       ].each do |line|
         expect(fixtures_project).to receive(:puts).with(line)
       end

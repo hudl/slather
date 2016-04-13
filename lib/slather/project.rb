@@ -50,8 +50,8 @@ end
 module Slather
   class Project < Xcodeproj::Project
 
-    attr_accessor :build_directory, :ignore_list, :ci_service, :coverage_service, :coverage_access_token, :source_directory, 
-      :output_directory, :xcodeproj, :show_html, :verbose_mode, :input_format, :scheme, :binary_file
+    attr_accessor :build_directory, :ignore_list, :ci_service, :coverage_service, :coverage_access_token, :source_directory,
+      :output_directory, :xcodeproj, :show_html, :verbose_mode, :input_format, :scheme, :workspace, :binary_file, :binary_basename
 
     alias_method :setup_for_coverage, :slather_setup_for_coverage
 
@@ -61,8 +61,38 @@ module Slather
       proj
     end
 
+    def failure_help_string
+      "\n\tAre you sure your project is generating coverage? Make sure you enable code coverage in the Test section of your Xcode scheme.\n\tDid you specify your Xcode scheme? (--scheme or 'scheme' in .slather.yml)\n\tIf you're using a workspace, did you specify it? (--workspace or 'workspace' in .slather.yml)"
+    end
+
     def derived_data_path
-      File.expand_path('~') + "/Library/Developer/Xcode/DerivedData/"
+      # Get the derived data path from xcodebuild
+      # Use OBJROOT when possible, as it provides regardless of whether or not the Derived Data location is customized
+      if self.workspace
+        projectOrWorkspaceArgument = "-workspace \"#{self.workspace}\""
+      else
+        projectOrWorkspaceArgument = "-project \"#{self.path}\""
+      end
+
+      if self.scheme
+        schemeArgument = "-scheme \"#{self.scheme}\""
+        buildAction = "test"
+      else
+        schemeArgument = nil
+        buildAction = nil
+      end
+
+      build_settings = `xcodebuild #{projectOrWorkspaceArgument} #{schemeArgument} -showBuildSettings #{buildAction}`
+
+      if build_settings
+        derived_data_path = build_settings.match(/ OBJROOT = (.+)/)[1]
+      end
+
+      if derived_data_path == nil
+        derived_data_path = File.expand_path('~') + "/Library/Developer/Xcode/DerivedData/"
+      end
+
+      derived_data_path
     end
     private :derived_data_path
 
@@ -83,7 +113,7 @@ module Slather
       end.compact
 
       if coverage_files.empty?
-        raise StandardError, "No coverage files found. Are you sure your project is setup for generating coverage files? Try `slather setup your/project.xcodeproj`"
+        raise StandardError, "No coverage files found."
       else
         dedupe(coverage_files)
       end
@@ -100,16 +130,32 @@ module Slather
     end
     private :profdata_coverage_files
 
+    def remove_extension(path)
+      path.split(".")[0..-2].join(".")
+    end
+
+    def first_product_name
+      first_product = self.products.first
+      # If name is not available it computes it using
+      # the path by dropping the 'extension' of the path.
+      first_product.name || remove_extension(first_product.path)
+    end
+
     def profdata_coverage_dir
       raise StandardError, "The specified build directory (#{self.build_directory}) does not exist" unless File.exists?(self.build_directory)
       dir = nil
       if self.scheme
-        dir = Dir["#{build_directory}/**/CodeCoverage/#{self.scheme}"].first
+        dir = Dir[File.join("#{build_directory}","/**/CodeCoverage/#{self.scheme}")].first
       else
-        dir = Dir["#{build_directory}/**/#{self.products.first.name}"].first
+        dir = Dir[File.join("#{build_directory}","/**/#{first_product_name}")].first
       end
 
-      raise StandardError, "No coverage directory found. Are you sure your project is setup for generating coverage files? Try `slather setup your/project.xcodeproj`" unless dir != nil
+      if dir == nil
+        # Xcode 7.3 moved the location of Coverage.profdata
+        dir = Dir[File.join("#{build_directory}","/**/CodeCoverage")].first
+      end
+
+      raise StandardError, "No coverage directory found." unless dir != nil
       dir
     end
 
@@ -126,21 +172,6 @@ module Slather
       return File.expand_path(file)
     end
     private :profdata_file
-
-    def find_binary_file_for_app(app_bundle_file)
-      app_bundle_file_name_noext = Pathname.new(app_bundle_file).basename.to_s.gsub(".app", "")
-      Dir["#{app_bundle_file}/**/#{app_bundle_file_name_noext}"].first
-    end
-
-    def find_binary_file_for_dynamic_lib(framework_bundle_file)
-      framework_bundle_file_name_noext = Pathname.new(framework_bundle_file).basename.to_s.gsub(".framework", "")
-      "#{framework_bundle_file}/#{framework_bundle_file_name_noext}"
-    end
-
-    def find_binary_file_for_static_lib(xctest_bundle_file)
-      xctest_bundle_file_name_noext = Pathname.new(xctest_bundle_file).basename.to_s.gsub(".xctest", "")
-      Dir["#{xctest_bundle_file}/**/#{xctest_bundle_file_name_noext}"].first
-    end
 
     def unsafe_profdata_llvm_cov_output
       profdata_file_arg = profdata_file
@@ -176,16 +207,24 @@ module Slather
     end
 
     def configure
-      configure_build_directory
-      configure_ignore_list
-      configure_ci_service
-      configure_coverage_access_token
-      configure_coverage_service
-      configure_source_directory
-      configure_output_directory
-      configure_input_format
-      configure_scheme
-      configure_binary_file
+      begin
+        configure_scheme
+        configure_workspace
+        configure_build_directory
+        configure_ignore_list
+        configure_ci_service
+        configure_coverage_access_token
+        configure_coverage_service
+        configure_source_directory
+        configure_output_directory
+        configure_input_format
+        configure_binary_file
+      rescue => e
+        puts e.message
+        puts failure_help_string
+        puts "\n"
+        raise
+      end
 
       if self.verbose_mode
         puts "\nProcessing coverage file: #{profdata_file}"
@@ -233,6 +272,10 @@ module Slather
       self.scheme ||= self.class.yml["scheme"] if self.class.yml["scheme"]
     end
 
+    def configure_workspace
+      self.workspace ||= self.class.yml["workspace"] if self.class.yml["workspace"]
+    end
+
     def ci_service=(service)
       @ci_service = service && service.to_sym
     end
@@ -247,17 +290,18 @@ module Slather
 
     def coverage_service=(service)
       service = service && service.to_sym
-      if service == :coveralls
+      case service
+      when :coveralls
         extend(Slather::CoverageService::Coveralls)
-      elsif service == :hardcover
+      when :hardcover
         extend(Slather::CoverageService::Hardcover)
-      elsif service == :terminal
+      when :terminal
         extend(Slather::CoverageService::SimpleOutput)
-      elsif service == :gutter_json
+      when :gutter_json
         extend(Slather::CoverageService::GutterJsonOutput)
-      elsif service == :cobertura_xml
+      when :cobertura_xml
         extend(Slather::CoverageService::CoberturaXmlOutput)
-      elsif service == :html
+      when :html
         extend(Slather::CoverageService::HtmlOutput)
       else
         raise ArgumentError, "`#{coverage_service}` is not a valid coverage service. Try `terminal`, `coveralls`, `gutter_json`, `cobertura_xml` or `html`"
@@ -271,25 +315,83 @@ module Slather
       end
     end
 
-    def find_binary_file
-      xctest_bundle = Dir["#{profdata_coverage_dir}/**/*.xctest"].reject { |bundle|
-        bundle.include? "-Runner.app/PlugIns/"
-      }.first
-      raise StandardError, "No product binary found in #{profdata_coverage_dir}. Are you sure your project is setup for generating coverage files? Try `slather setup your/project.xcodeproj`" unless xctest_bundle != nil
-
-      # Find the matching binary file
-      xctest_bundle_file_directory = Pathname.new(xctest_bundle).dirname
-      app_bundle = Dir["#{xctest_bundle_file_directory}/*.app"].first
-      dynamic_lib_bundle = Dir["#{xctest_bundle_file_directory}/*.framework"].first
-
-      if app_bundle != nil
-        find_binary_file_for_app(app_bundle)
-      elsif dynamic_lib_bundle != nil
-        find_binary_file_for_dynamic_lib(dynamic_lib_bundle)
-      else
-        find_binary_file_for_static_lib(xctest_bundle)
-      end
+    def find_binary_file_in_bundle(bundle_file)
+      bundle_file_noext = File.basename(bundle_file, File.extname(bundle_file))
+      Dir["#{bundle_file}/**/#{bundle_file_noext}"].first
     end
 
+    def find_binary_file
+      binary_basename = self.binary_basename || self.class.yml["binary_basename"] || nil
+
+      # Get scheme info out of the xcodeproj
+      if self.scheme
+        schemes_path = Xcodeproj::XCScheme.shared_data_dir(self.path)
+        xcscheme_path = "#{schemes_path + self.scheme}.xcscheme"
+
+        # Try to look inside 'xcuserdata' if the scheme is not found in 'xcshareddata'
+        if !File.file?(xcscheme_path)
+          schemes_path = Xcodeproj::XCScheme.user_data_dir(self.path)
+          xcscheme_path = "#{schemes_path + self.scheme}.xcscheme"
+        end
+
+        raise StandardError, "No scheme named '#{self.scheme}' found in #{self.path}" unless File.exists? xcscheme_path
+
+        xcscheme = Xcodeproj::XCScheme.new(xcscheme_path)
+
+        begin
+          buildable_name = xcscheme.build_action.entries[0].buildable_references[0].buildable_name
+        rescue
+          # xcodeproj will raise an exception if there are no entries in the build action
+        end
+
+        if buildable_name == nil or buildable_name.end_with? ".a"
+          # Can't run code coverage on static libraries, look for an associated test bundle
+          buildable_name = xcscheme.test_action.testables[0].buildable_references[0].buildable_name
+        end
+
+        configuration = xcscheme.test_action.build_configuration
+
+        search_for = binary_basename || buildable_name
+        found_product = Dir["#{profdata_coverage_dir}/Products/#{configuration}*/#{search_for}*"].sort { |x, y|
+          # Sort the matches without the file extension to ensure better matches when there are multiple candidates
+          # For example, if the binary_basename is Test then we want Test.app to be matched before Test Helper.app
+          File.basename(x, File.extname(x)) <=> File.basename(y, File.extname(y))
+        }.reject { |path|
+          path.end_with? ".dSYM"
+        }.first
+
+        if found_product and File.directory? found_product
+          found_binary = find_binary_file_in_bundle(found_product)
+        else
+          found_binary = found_product
+        end
+      else
+        xctest_bundle = Dir["#{profdata_coverage_dir}/**/*.xctest"].reject { |bundle|
+            # Ignore xctest bundles that are in the UI runner app
+            bundle.include? "-Runner.app/PlugIns/"
+        }.first
+
+        # Find the matching binary file
+        search_for = binary_basename || '*'
+        xctest_bundle_file_directory = Pathname.new(xctest_bundle).dirname
+        app_bundle = Dir["#{xctest_bundle_file_directory}/#{search_for}.app"].first
+        dynamic_lib_bundle = Dir["#{xctest_bundle_file_directory}/#{search_for}.framework"].first
+        matched_xctest_bundle = Dir["#{xctest_bundle_file_directory}/#{search_for}.xctest"].first
+
+        if app_bundle != nil
+            found_binary = find_binary_file_in_bundle(app_bundle)
+        elsif dynamic_lib_bundle != nil
+            found_binary = find_binary_file_in_bundle(dynamic_lib_bundle)
+        elsif matched_xctest_bundle != nil
+            found_binary = find_binary_file_in_bundle(matched_xctest_bundle)
+        else
+            found_binary = find_binary_file_in_bundle(xctest_bundle)
+        end
+      end
+
+      raise StandardError, "No product binary found in #{profdata_coverage_dir}." unless found_binary != nil
+
+      found_binary
+    end
   end
 end

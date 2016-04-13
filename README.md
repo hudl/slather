@@ -1,10 +1,10 @@
 
 
-![Slather Logo](https://raw.githubusercontent.com/venmo/slather/master/docs/logo.jpg)
+![Slather Logo](https://raw.githubusercontent.com/SlatherOrg/slather/master/docs/logo.jpg)
 
 [![Gem Version](https://badge.fury.io/rb/slather.svg)](http://badge.fury.io/rb/slather)
-[![Build Status](https://travis-ci.org/venmo/slather.svg?branch=master)](https://travis-ci.org/venmo/slather)
-[![Coverage Status](https://coveralls.io/repos/venmo/slather/badge.svg?branch=ayanonagon%2Fcoveralls)](https://coveralls.io/r/venmo/slather?branch=ayanonagon%2Fcoveralls)
+[![Build Status](https://travis-ci.org/SlatherOrg/slather.svg?branch=master)](https://travis-ci.org/SlatherOrg/slather)
+[![Coverage Status](https://coveralls.io/repos/SlatherOrg/slather/badge.svg?branch=master)](https://coveralls.io/r/SlatherOrg/slather?branch=master)
 
 Generate test coverage reports for Xcode projects & hook it into CI.
 
@@ -31,21 +31,36 @@ And then execute:
 $ bundle
 ```
 
-## Usage
-
-Set up your project for test coverage:
+Or install the gem:
 
 ```sh
-$ slather setup path/to/project.xcodeproj
+gem install slather
 ```
 
-This will enable the `Generate Test Coverage` and `Instrument Program Flow` flags for your project.
+## Usage
 
+Enable test coverage by ticking the *"Gather coverage data"* checkbox when editing a scheme:
+
+![](README_Images/test_scheme.png)
 
 To verify you're ready to generate test coverage, run your test suite on your project, and then run:
 
 ```sh
-$ slather coverage -s path/to/project.xcodeproj
+$ slather coverage -s --scheme YourXcodeSchemeName path/to/project.xcodeproj
+```
+
+If you use a workspace in Xcode you need to specify it: 
+
+```sh
+$ slather coverage -s --scheme YourXcodeSchemeName --workspace path/to/workspace.xcworkspace path/to/project.xcodeproj
+```
+
+### Setup for Xcode 5 and 6
+
+Run this command to enable the `Generate Test Coverage` and `Instrument Program Flow` flags for your project:
+
+```sh
+$ slather setup path/to/project.xcodeproj
 ```
 
 ### Usage with Codecov
@@ -59,6 +74,7 @@ Make a `.slather.yml` file:
 
 coverage_service: cobertura_xml
 xcodeproj: path/to/project.xcodeproj
+scheme: YourXcodeSchemeName
 source_directory: path/to/sources/to/include
 output_directory: path/to/xml_report
 ignore:
@@ -100,6 +116,7 @@ Make a `.slather.yml` file:
 
 coverage_service: coveralls
 xcodeproj: path/to/project.xcodeproj
+scheme: YourXcodeSchemeName
 ignore:
   - ExamplePodCode/*
   - ProjectTestsGroup/*
@@ -146,6 +163,7 @@ To create a Cobertura XML report set `cobertura_xml` as coverage service inside 
 
 coverage_service: cobertura_xml
 xcodeproj: path/to/project.xcodeproj
+scheme: YourXcodeSchemeName
 source_directory: path/to/sources/to/include
 output_directory: path/to/xml_report
 ignore:
@@ -164,10 +182,18 @@ $ slather coverage -x --output-directory path/to/xml_report
 To create a report as static html pages, use the command line options `--html`:
 
 ```sh
-$ slather coverage --html path/to/project.xcodeproj
+$ slather coverage --html --scheme YourXcodeSchemeName path/to/project.xcodeproj
 ```
 
 This will make a directory named `html` in your root directory (unless `--output-directory` is specified) and will generate all the reports as static html pages inside the directory. It will print out the report's path by default, but you can also specify `--show` flag to open it in your browser automatically.
+
+### TeamCity Reporting
+
+To report the coverage statistics to TeamCity:
+
+```sh
+$ slather coverage --teamcity -s --scheme YourXcodeSchemeName
+```
 
 ### Coverage for code included via CocoaPods
 
@@ -191,9 +217,17 @@ source_directory: Pods/AFNetworking
 
 Slather will look for the test coverage files in `DerivedData` by default. If you send build output to a custom location, like [this](https://github.com/erikdoe/ocmock/blob/7f4d22b38eedf1bb9a12ab1591ac0a5d436db61a/Tools/travis.sh#L12), then you should also set the `build_directory` property in `.slather.yml`
 
+### Building in a workspace
+
+Include the `--workspace` argument or add `workspace` to `.slather.yml` if you build your project in a workspace. For example:
+
+```sh
+$ slather coverage --html --scheme YourXcodeSchemeName --workspace path/to/workspace.xcworkspace path/to/project.xcodeproj
+```
+
 ## Contributing
 
-We’d love to see your ideas for improving this library! The best way to contribute is by submitting a pull request. We’ll do our best to respond to your patch as soon as possible. You can also submit a [new GitHub issue](https://github.com/venmo/slather/issues/new) if you find bugs or have questions. :octocat:
+We’d love to see your ideas for improving this library! The best way to contribute is by submitting a pull request. We’ll do our best to respond to your patch as soon as possible. You can also submit a [new GitHub issue](https://github.com/SlatherOrg/slather/issues/new) if you find bugs or have questions. :octocat:
 
 Please make sure to follow our general coding style and add test coverage for new features!
 
