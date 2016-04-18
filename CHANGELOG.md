@@ -2,9 +2,21 @@
 
 ## master
 
+* Generate coverate for multiple binaries by passing multiple `--binary-basename` or `--binary-file` arguments, or by using an array in `.slather.yml`  
+  [Kent Sutherland](https://github.com/ksuther)
+  [#188](https://github.com/SlatherOrg/slather/pull/188)
+
 * Improve getting schemes. Looks for user scheme in case no shared scheme is found.  
   [Matyas Hlavacek](https://github.com/matyashlavacek)
   [#182](https://github.com/SlatherOrg/slather/issues/182)
+
+* Search Xcode workspaces for schemes. Workspaces are checked if no matching scheme is found in the project.
+  [Kent Sutherland](https://github.com/ksuther)
+  [#193](https://github.com/SlatherOrg/slather/pull/193), [#191](https://github.com/SlatherOrg/slather/issues/191)
+
+* Fix for hit counts in thousands or millions being output as floats intead of integers
+  [Carl Hill-Popper](https://github.com/chillpop)
+  [#190](https://github.com/SlatherOrg/slather/pull/190)
 
 ## v2.1.0
 
