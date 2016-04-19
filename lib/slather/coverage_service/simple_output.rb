@@ -24,7 +24,7 @@ module Slather
           total_project_lines_tested += lines_tested
           total_project_lines += total_lines
 
-          puts "#{coverage_file.source_file_pathname_relative_to_repo_root}: #{lines_tested} of #{total_lines} lines (#{percentage}%)"
+          # puts "#{coverage_file.source_file_pathname_relative_to_repo_root}: #{lines_tested} of #{total_lines} lines (#{percentage}%)"
         end
 
         # check if there needs to be custom reporting based on the ci service
