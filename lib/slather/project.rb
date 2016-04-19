@@ -153,7 +153,7 @@ module Slather
       raise StandardError, "The specified build directory (#{self.build_directory}) does not exist" unless File.exists?(self.build_directory)
       dir = nil
       if self.scheme
-        dir = Dir[File.join("#{build_directory}","/**/CodeCoverage/#{self.scheme}")].first
+        dir = Dir[File.join("#{build_directory}","/**/CodeCoverage/")].first
       else
         dir = Dir[File.join("#{build_directory}","/**/#{first_product_name}")].first
       end
