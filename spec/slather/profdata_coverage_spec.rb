@@ -70,8 +70,16 @@ describe Slather::ProfdataCoverageFile do
   end
 
   describe "#line_number_in_line" do
-    it "should return the correct line number" do
+    it "should return the correct line number for coverage represented as decimals" do
       expect(profdata_coverage_file.line_number_in_line("      0|   40|    func applicationWillTerminate(application: UIApplication) {")).to eq(40)
+    end
+
+    it "should return the correct line number for coverage represented as thousands" do
+      expect(profdata_coverage_file.line_number_in_line("  11.8k|   41|    func applicationWillTerminate(application: UIApplication) {")).to eq(41)
+    end
+
+    it "should return the correct line number for coverage represented as milions" do
+      expect(profdata_coverage_file.line_number_in_line("  2.58M|   42|    func applicationWillTerminate(application: UIApplication) {")).to eq(42)
     end
   end
 
@@ -135,6 +143,12 @@ describe Slather::ProfdataCoverageFile do
        |    1|//
        |    2|//  AppDelegate.swift
        |    3|//  xcode7workbench01")
+
+      expect(ignorable_file.ignored?).to be_truthy
+    end
+
+    it "should ignore warnings" do
+      ignorable_file = Slather::ProfdataCoverageFile.new(fixtures_project, "warning The file '/Users/ci/.ccache/tmp/CALayer-KI.stdout.macmini08.92540.QAQaxt.mi' isn't covered.")
 
       expect(ignorable_file.ignored?).to be_truthy
     end

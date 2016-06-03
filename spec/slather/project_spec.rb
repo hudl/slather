@@ -53,14 +53,14 @@ describe Slather::Project do
     it "should return coverage file objects of type coverage_file_class for unignored project files" do
       fixtures_project.ignore_list = ["*fixturesTests*"]
       allow(fixtures_project).to receive(:dedupe) { |coverage_files| coverage_files }
-      coverage_files = fixtures_project.send(:coverage_files)
+      coverage_files = fixtures_project.coverage_files
       coverage_files.each { |cf| expect(cf.kind_of?(SpecCoverageFile)).to be_truthy }
       expect(coverage_files.map { |cf| cf.source_file_pathname.basename.to_s }).to eq(["fixtures.m", "peekaview.m"])
     end
 
     it "should raise an exception if no unignored project coverage file files were found" do
       fixtures_project.ignore_list = ["*fixturesTests*", "*fixtures*"]
-      expect {fixtures_project.send(:coverage_files)}.to raise_error(StandardError)
+      expect {fixtures_project.coverage_files}.to raise_error(StandardError)
     end
   end
 
@@ -134,6 +134,14 @@ describe Slather::Project do
       allow(fixtures_project).to receive(:scheme).and_return("fixtures")
       allow(Dir).to receive(:[]).with("#{build_directory}/**/CodeCoverage/FixtureScheme").and_return(["#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme"])
       allow(Dir).to receive(:[]).with("#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/**/*.xctest").and_return(["#{build_directory}/Build/Intermediates/CodeCoverage/FixtureScheme/FixtureAppTests.xctest"])
+    end
+
+    it "should use binary_file" do
+      fixtures_project.binary_file = ["/path/to/binary"]
+      fixtures_project.send(:configure_binary_file)
+      binary_file_location = fixtures_project.send(:binary_file)
+      expect(binary_file_location.count).to eq(1)
+      expect(binary_file_location.first).to eq("/path/to/binary")
     end
 
     it "should find the product path provided a scheme" do
@@ -462,6 +470,53 @@ describe Slather::Project do
       end
 
       fixtures_project.send(:configure)
+    end
+  end
+
+  describe "#source_files" do
+
+    let(:fixtures_project) do
+      proj = Slather::Project.open(FIXTURES_PROJECT_PATH)
+      proj.build_directory = TEMP_DERIVED_DATA_PATH
+      proj.input_format = "profdata"
+      proj.source_files = ["./**/fixtures{,Two}.m"]
+      proj.binary_basename = ["fixturesTests", "libfixturesTwo"]
+      proj.configure
+      proj
+    end
+
+    it "should find relevant source files" do
+      source_files = fixtures_project.find_source_files
+      expect(source_files.count).to eq(2)
+      expect(source_files.first.to_s).to include("fixtures.m")
+      expect(source_files.last.to_s).to include("fixturesTwo.m")
+    end
+
+    it "should print out the coverage for each file, and then total coverage" do
+      ["spec/fixtures/fixtures/fixtures.m: 3 of 6 lines (50.00%)",
+      "spec/fixtures/fixturesTwo/fixturesTwo.m: 6 of 6 lines (100.00%)",
+      "Test Coverage: 75.00%"
+      ].each do |line|
+        expect(fixtures_project).to receive(:puts).with(line)
+      end
+      fixtures_project.post
+    end
+  end
+
+  def decimal_f *args
+    fixtures_project.decimal_f *args
+  end
+
+  describe '#decimal_f' do
+    it 'should preserve length 2 decimals for backwards compatibility' do
+      expect(decimal_f('100.00')).to eq('100.00')
+      expect(decimal_f('50.00')).to eq('50.00')
+    end
+
+    it 'should convert length >= 3 decimals to floats' do
+      fixtures_project.decimals = 3
+      expect(decimal_f('100.000')).to eq('100.0')
+      expect(decimal_f('50.00000')).to eq('50.0')
     end
   end
 end
