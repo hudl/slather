@@ -2,19 +2,48 @@
 
 ## master
 
+## v2.2.1
+
+* Make `project.coverage_files` public  
+* Add docs attribute reader to `project.rb`  
+  [bootstraponline](https://github.com/bootstraponline)
+  [#209](https://github.com/SlatherOrg/slather/pull/209)
+
+* Add `--decimals` flag  
+  [bootstraponline](https://github.com/bootstraponline)
+  [#207](https://github.com/SlatherOrg/slather/pull/207)
+
+* Add `slather version` command  
+  [bootstraponline](https://github.com/bootstraponline)
+  [#208](https://github.com/SlatherOrg/slather/pull/208)
+
+## v2.2.0
+
+* Fix nil crash in `project.rb` derived_data_path  
+  [bootstraponline](https://github.com/bootstraponline)
+  [#203](https://github.com/SlatherOrg/slather/pull/203)
+
+* Fix for correct line number for lines that are hit thousands or millions of time in llvm-cov.  
+  [Mihai Parv](https://github.com/mihaiparv)
+  [#202](https://github.com/SlatherOrg/slather/pull/202), [#196](https://github.com/SlatherOrg/slather/issues/196)
+
 * Generate coverate for multiple binaries by passing multiple `--binary-basename` or `--binary-file` arguments, or by using an array in `.slather.yml`  
   [Kent Sutherland](https://github.com/ksuther)
   [#188](https://github.com/SlatherOrg/slather/pull/188)
+
+* Support for specifying source file patterns using the `--source-files` option or the source_files key in `.slather.yml`  
+  [Matej Bukovinski](https://github.com/matej)
+  [#201](https://github.com/SlatherOrg/slather/pull/201)
 
 * Improve getting schemes. Looks for user scheme in case no shared scheme is found.  
   [Matyas Hlavacek](https://github.com/matyashlavacek)
   [#182](https://github.com/SlatherOrg/slather/issues/182)
 
-* Search Xcode workspaces for schemes. Workspaces are checked if no matching scheme is found in the project.
+* Search Xcode workspaces for schemes. Workspaces are checked if no matching scheme is found in the project.  
   [Kent Sutherland](https://github.com/ksuther)
   [#193](https://github.com/SlatherOrg/slather/pull/193), [#191](https://github.com/SlatherOrg/slather/issues/191)
 
-* Fix for hit counts in thousands or millions being output as floats intead of integers
+* Fix for hit counts in thousands or millions being output as floats intead of integers  
   [Carl Hill-Popper](https://github.com/chillpop)
   [#190](https://github.com/SlatherOrg/slather/pull/190)
 
